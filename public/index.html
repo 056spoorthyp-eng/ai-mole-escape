@@ -62,289 +62,214 @@
   .field input{width:100%;background:#05080d;color:var(--text);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:13px 12px;font-family:var(--mono);font-size:14px;letter-spacing:.05em}
   .field input:focus{outline:none;border-color:var(--neon);box-shadow:0 0 0 3px rgba(255,42,60,.2)}
 
-  .grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:14px}
-  @media(max-width:850px){.grid{grid-template-columns:1fr}}
-  
+  .briefing{max-width:820px;margin:20px auto}
+  .typing-line{font-size:14px;line-height:1.8;min-height:1.6em}
+  .prompt::before{content:"> ";color:var(--neon)}
+
+  .grid{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px}
   .stage{position:relative;border-radius:14px;overflow:hidden;border:2px solid #3a2010;box-shadow:0 30px 80px rgba(0,0,0,.8),inset 0 0 140px rgba(0,0,0,.5);aspect-ratio:16/10;min-height:380px;background:#0a0604}
-  .room-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.15;background:repeating-linear-gradient(45deg,#150c08 0 10px,#0a0604 10px 20px)}
+  .room-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:1}
 
   .hotspot{position:absolute;cursor:pointer;border-radius:10px;transition:all .2s;background:transparent;z-index:5;touch-action:manipulation}
   .hotspot::before{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 0 2px transparent, 0 0 0 0 transparent;transition:all .25s}
   .hotspot:hover::before,.hotspot:active::before{box-shadow:inset 0 0 0 2px rgba(255,207,127,.8), 0 0 28px rgba(255,207,127,.55);background:radial-gradient(ellipse at center,rgba(255,207,127,.18),transparent 70%)}
-  .hotspot.wobble-anim{animation:wobble .5s}
+  .hotspot .lbl{position:absolute;left:50%;bottom:-28px;transform:translateX(-50%);background:rgba(5,8,13,.95);color:var(--gold);font-size:10px;letter-spacing:.18em;padding:4px 10px;border:1px solid var(--gold);border-radius:4px;white-space:nowrap;opacity:0;transition:opacity .15s;pointer-events:none;text-transform:uppercase;z-index:6;box-shadow:0 6px 14px rgba(0,0,0,.6)}
+  .hotspot:hover .lbl,.hotspot:active .lbl{opacity:1}
+  .hotspot.correct{animation:found 1.3s}
+  .hotspot.correct::before{box-shadow:inset 0 0 0 3px var(--green), 0 0 40px rgba(41,255,136,.7);background:radial-gradient(ellipse at center,rgba(41,255,136,.25),transparent 70%)}
+  .hotspot.wrong{animation:wobble .5s}
+  .hotspot.wrong::before{box-shadow:inset 0 0 0 3px var(--neon), 0 0 30px rgba(255,42,60,.7);background:radial-gradient(ellipse at center,rgba(255,42,60,.25),transparent 70%)}
+  .hotspot.dead{opacity:.5;pointer-events:none}
+  .hotspot.dead::before{box-shadow:inset 0 0 0 2px rgba(100,100,100,.5);background:rgba(0,0,0,.4)}
+  @keyframes found{0%,100%{filter:brightness(1)}50%{filter:brightness(1.5)}}
   @keyframes wobble{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 
-  .stage-hud{position:absolute;left:12px;bottom:12px;right:12px;z-index:10;display:flex;justify-content:between;gap:10px;pointer-events:none;align-items:flex-end}
-  .room-label{background:rgba(5,8,13,.95);color:var(--gold);padding:6px 12px;border:1px solid var(--gold);border-radius:4px;font-size:10px;letter-spacing:.3em;text-transform:uppercase;pointer-events:auto}
+  .stage-hud{position:absolute;left:12px;bottom:12px;right:12px;z-index:10;display:flex;justify-content:space-between;gap:10px;pointer-events:none;align-items:flex-end}
+  .room-label{background:rgba(5,8,13,.88);color:var(--gold);padding:6px 12px;border:1px solid var(--gold);border-radius:4px;font-size:10px;letter-spacing:.3em;text-transform:uppercase;pointer-events:auto}
 
   .cluebar{background:var(--panel);border:1px solid rgba(255,42,60,.25);border-radius:10px;padding:14px 16px;margin-bottom:12px}
   .cluebar-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
   .classified{font-size:9px;letter-spacing:.3em;color:var(--neon);padding:3px 8px;border:1px solid var(--neon);border-radius:3px}
   .clue-n{font-size:10px;letter-spacing:.2em;color:var(--muted)}
-  .riddle-text{font-size:14px;line-height:1.75;font-style:italic;color:var(--text);border-left:3px solid var(--neon);padding:10px 14px;background:linear-gradient(90deg,rgba(255,42,60,.06),transparent);border-radius:0 4px 4px 0}
+  .riddle-text{font-size:14px;line-height:1.75;font-style:italic;color:var(--text);border-left:3px solid var(--neon);padding:10px 14px;background:linear-gradient(90deg,rgba(255,42,60,.06),transparent);border-radius:0 4px 4px 0;white-space:pre-line}
 
-  .sidebar{display:flex;flex-direction:column;gap:14px}
-  .terminal-box{background:rgba(5,8,13,0.9);border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:12px;font-size:11px;height:120px;overflow-y:auto;color:var(--cyan);line-height:1.4}
-  
-  .player-row{display:flex;justify-content:space-between;background:rgba(255,255,255,0.02);padding:8px 12px;border-radius:6px;border-left:2px solid var(--muted);font-size:12px}
-  .player-row.me{border-left-color:var(--cyan);background:rgba(41,229,255,0.04)}
-  .player-row.clear{border-left-color:var(--green);background:rgba(41,255,136,0.04)}
+  .modal{position:fixed;inset:0;z-index:300;background:rgba(2,4,8,.88);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;padding:20px;animation:fadeUp .3s}
+  .modal.on{display:flex}
+  .modal-card{max-width:560px;width:100%;background:var(--panel);border:1px solid var(--cyan);border-radius:12px;padding:24px;box-shadow:0 0 40px rgba(41,229,255,.3);max-height:90vh;overflow-y:auto}
+  .modal-card h3{margin:0 0 14px;font-size:14px;letter-spacing:.2em;color:var(--cyan)}
+  .q-text{font-size:16px;line-height:1.55;margin-bottom:16px}
+  .choices{display:grid;gap:10px}
+  .choice{text-align:left;padding:13px 16px;background:rgba(10,14,20,.6);border:1px solid rgba(255,255,255,.08);border-radius:6px;cursor:pointer;color:var(--text);font-family:var(--mono);font-size:13px;letter-spacing:.05em;transition:all .2s}
+  .choice:hover:not(:disabled){border-color:var(--cyan);transform:translateX(3px)}
+  .choice.correct{border-color:var(--green);background:rgba(41,255,136,.12);color:var(--green)}
+  .choice.wrong{border-color:var(--neon);background:rgba(255,42,60,.12);color:var(--neon);animation:wobble .4s}
+  .cipher{display:flex;gap:10px;margin:12px 0;flex-wrap:wrap;align-items:center}
+  .cipher-display{font-size:22px;letter-spacing:.4em;color:var(--amber);padding:10px 16px;border:1px dashed rgba(255,179,71,.4);border-radius:6px;flex:1;min-width:180px;text-align:center}
+  .cipher input{background:#05080d;color:var(--text);border:1px solid rgba(255,255,255,.1);padding:10px 14px;border-radius:6px;font-family:var(--mono);font-size:14px;letter-spacing:.15em;text-transform:uppercase;flex:1;min-width:140px}
+
+  .side{display:flex;flex-direction:column;gap:12px}
+  .panel{background:var(--panel);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:14px;backdrop-filter:blur(8px)}
+  .panel h4{margin:0 0 10px;font-size:10px;letter-spacing:.3em;color:var(--neon);display:flex;align-items:center;gap:8px}
+  .panel h4::before{content:"";width:6px;height:6px;background:var(--neon);border-radius:50%;box-shadow:0 0 8px var(--neon)}
+  .progress-bar{display:flex;gap:5px}
+  .pnode{flex:1;height:7px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;position:relative}
+  .pnode.done{background:var(--green);box-shadow:0 0 8px rgba(41,255,136,.5)}
+  .pnode.current{background:rgba(255,42,60,.3)}
+  .pnode.current::after{content:"";position:absolute;inset:0;background:var(--neon);animation:fill 1.5s ease infinite alternate}
+  @keyframes fill{from{transform:translateX(-70%)}to{transform:translateX(0)}}
+
+  .lifelines{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .lifeline{padding:12px 6px;background:rgba(10,14,20,.5);border:1px solid rgba(41,229,255,.25);border-radius:8px;text-align:center;cursor:pointer;transition:all .2s;color:var(--cyan);font-size:10px;letter-spacing:.15em}
+  .lifeline:hover:not(.used){background:rgba(41,229,255,.08);transform:translateY(-2px)}
+  .lifeline .icon{font-size:18px;display:block;margin-bottom:4px}
+  .lifeline.used{opacity:.25;cursor:not-allowed;filter:grayscale(1)}
+  .lifeline-hint{font-size:10px;color:var(--muted);margin-top:8px;line-height:1.4}
+
+  .lb-table{width:100%;border-collapse:collapse;font-size:12px}
+  .lb-table th,.lb-table td{text-align:left;padding:7px 6px;border-bottom:1px solid rgba(255,255,255,.06);letter-spacing:.08em}
+  .lb-table th{color:var(--muted);font-size:9px;letter-spacing:.25em;font-weight:400}
+  .lb-table .rank{color:var(--neon);font-weight:700;width:30px}
+  .lb-table tr.me td{color:var(--amber);background:rgba(255,179,71,.05)}
+
+  .toast-wrap{position:fixed;top:20px;right:20px;z-index:999;display:flex;flex-direction:column;gap:8px;max-width:340px}
+  .toast{padding:11px 15px;background:var(--panel);border-left:3px solid var(--neon);border-radius:4px;backdrop-filter:blur(8px);font-size:12px;letter-spacing:.06em;box-shadow:0 8px 30px rgba(0,0,0,.6);animation:toastin .3s ease}
+  .toast.ok{border-color:var(--green)}
+  .toast.warn{border-color:var(--amber)}
+  @keyframes toastin{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
+
+  .overlay{position:fixed;inset:0;z-index:500;background:rgba(2,4,8,.85);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;animation:fadeUp .3s;padding:20px}
+  .overlay.on{display:flex}
+  .overlay-card{max-width:520px;width:100%;text-align:center;padding:36px 24px;background:var(--panel);border:1px solid var(--neon);border-radius:14px;box-shadow:0 0 40px rgba(255,42,60,.4)}
+  .granted{color:var(--green);text-shadow:0 0 30px rgba(41,255,136,.7)}
+  .denied{color:var(--neon);text-shadow:0 0 30px rgba(255,42,60,.7)}
+  .big{font-size:38px;font-weight:800;letter-spacing:.2em;margin:8px 0}
+
+  .end-card{text-align:center;max-width:680px;margin:30px auto;padding:34px 24px}
+  .badge{width:160px;height:160px;margin:10px auto 16px;border-radius:50%;background:conic-gradient(var(--neon),var(--cyan),var(--amber),var(--neon));display:flex;align-items:center;justify-content:center;box-shadow:0 0 50px rgba(255,42,60,.4);position:relative;animation:spin 12s linear infinite}
+  .badge::before{content:"";position:absolute;inset:8px;background:#0b1016;border-radius:50%}
+  .badge span{position:relative;font-size:14px;letter-spacing:.2em;font-weight:800;color:var(--neon);text-align:center;padding:0 12px;line-height:1.2}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .final-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0}
+  .fs{padding:12px;background:rgba(10,14,20,.5);border:1px solid rgba(255,255,255,.08);border-radius:8px}
+  .fs .num{font-size:24px;color:var(--neon);font-weight:800}
+  .fs .lb{font-size:9px;letter-spacing:.25em;color:var(--muted);margin-top:4px}
+
+  .admin-toggle{position:fixed;bottom:18px;right:18px;z-index:50;width:42px;height:42px;border-radius:50%;background:rgba(10,14,20,.8);border:1px solid rgba(255,42,60,.4);color:var(--neon);font-size:18px;cursor:pointer;backdrop-filter:blur(6px)}
+
+  @media (max-width:980px){
+    .grid{grid-template-columns:1fr}
+    .side{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  }
+  @media (max-width:700px){
+    .app{padding:10px 10px 80px}
+    .topbar{gap:8px;padding:10px 10px}
+    .stat{padding:0 6px;border-left:none}
+    .stage{min-height:260px}
+    .side{grid-template-columns:1fr}
+    .toast-wrap{left:10px;right:10px;top:12px;max-width:none}
+    .btn{padding:11px 12px;font-size:10px}
+  }
+  @media (max-width:600px){.final-stats{grid-template-columns:1fr}.big{font-size:26px}}
 </style>
 </head>
 <body>
+<button class="admin-toggle" id="adminBtn">⚙</button>
+<div class="toast-wrap" id="toasts"></div>
+<div class="overlay" id="grantedOverlay"><div class="overlay-card"><div class="big granted">ACCESS GRANTED</div><p style="color:var(--muted);letter-spacing:.2em;font-size:11px;margin:0">CLEARANCE VERIFIED · +100 PTS</p></div></div>
+<div class="overlay" id="deniedOverlay"><div class="overlay-card"><div class="big denied">ACCESS DENIED</div><p style="color:var(--muted);letter-spacing:.2em;font-size:11px;margin:0">BIOMETRIC MISMATCH · -20 PTS</p></div></div>
+<div class="modal" id="challengeModal"><div class="modal-card" id="challengeCard"></div></div>
 
 <div class="app">
-  <!-- Restored Original UI Topbar Stats Tracker Layout -->
-  <div class="topbar">
-    <div class="logo"><div class="dot"></div><span class="glitch" data-text="THE AI MOLE">THE AI MOLE</span> // ESCAPE PROTOCOL</div>
-    <div class="sep"></div>
-    <div class="stat cyan"><span class="label">AGENT IDENTITY</span><span id="hud-name" class="value">GUEST_NODE</span></div>
-    <div class="stat neon"><span class="label">SECTOR ACCESS</span><span id="hud-room" class="value">OFFLINE</span></div>
-    <div class="stat"><span class="label">PROGRESS MATRIX</span><span id="hud-progress" class="value">0 / 3</span></div>
-    <div class="stat neon"><span class="label">TIME TO PURGE</span><span id="timer" class="value">10:00</span></div>
-    <div class="alerts">
-      <div id="alert-1" class="a off"></div>
-      <div id="alert-2" class="a off"></div>
-      <div id="alert-3" class="a off"></div>
-    </div>
-  </div>
-
-  <!-- Screen Stage 1: Multiplayer Onboarding Terminal Interface -->
-  <div id="screen-auth" class="screen active">
+  <section class="screen active" id="scrLogin">
     <div class="login-wrap">
-      <h1 class="title-xl"><span class="red">ESCAPE</span> PROTOCOL</h1>
-      <p class="subtitle">ESTABLISH MULTIPLAYER DECK CONNECTION INTERFACE</p>
-      
+      <div class="title-xl"><span class="glitch" data-text="THE AI MOLE">THE AI MOLE</span></div>
+      <div class="title-xl"><span class="red">ESCAPE PROTOCOL</span></div>
+      <div class="subtitle">// CLASSIFIED — LEVEL 7 CLEARANCE REQUIRED //</div>
       <div class="dossier">
-        <div class="field">
-          <label>REGISTRATION CODENAME</label>
-          <input type="text" id="input-name" placeholder="ENTER AGENT TAG..." maxlength="12" />
-        </div>
-        <div class="field">
-          <label>SECTOR ROOM KEY</label>
-          <input type="text" id="input-room" placeholder="ENTER TUNNEL CODE..." maxlength="10" style="text-transform: uppercase;" />
-        </div>
-        <button class="btn primary" style="width:100%; margin-top:15px;" onclick="connectMultiplayerDeck()">INITIALIZE DECK LINK</button>
+        <div style="font-size:11px;letter-spacing:.25em;color:var(--muted);margin-bottom:14px">PLAYER REGISTRATION TERMINAL</div>
+        <div class="field"><label>PLAYER NAME</label><input id="teamName" placeholder="e.g. SPOORTHY" maxlength="28"/></div>
+        <!-- Injected Multiplayer Room Input Panel Structure -->
+        <div class="field"><label>SECTOR ROOM KEY (MULTIPLAYER)</label><input id="roomKey" placeholder="e.g. LOBBY7" maxlength="12" style="text-transform: uppercase;"/></div>
+        <button class="btn primary" id="startBtn" style="width:100%;margin-top:10px;padding:14px;font-size:12px">▶ ENTER THE STUDY</button>
       </div>
     </div>
-  </div>
+  </section>
 
-  <!-- Screen Stage 2: Main Playable HUD Workspace Grid -->
-  <div id="screen-game" class="screen">
-    <!-- Original Clue Banner Component Layout -->
-    <div class="cluebar">
-      <div class="cluebar-head">
-        <span class="classified">CLASSIFIED INTEL</span>
-        <span id="clue-level" class="clue-n">DECRYPTION ID: #01</span>
+  <section class="screen" id="scrBrief">
+    <div class="briefing">
+      <div class="dossier">
+        <div style="display:flex;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+          <span class="classified">TOP SECRET</span>
+          <span style="font-size:10px;letter-spacing:.25em;color:var(--muted)">DOSSIER #AIM-0547</span>
+        </div>
+        <div id="briefText" class="typing-line"></div>
+        <button class="btn primary" id="briefBtn" style="margin-top:24px;display:none">▶ START MISSION</button>
       </div>
-      <div id="riddle-text" class="riddle-text">Calibrating decentralized target objectives...</div>
+    </div>
+  </section>
+
+  <section class="screen" id="scrGame">
+    <div class="topbar">
+      <div class="logo"><span class="dot"></span><span>AIM // ESCAPE PROTOCOL</span></div>
+      <div class="sep"></div>
+      <div class="stat"><span class="label">PLAYER</span><span class="value" id="hdrTeam">—</span></div>
+      <div class="stat cyan"><span class="label">CLUE</span><span class="value" id="hdrClue">1/5</span></div>
+      <div class="stat green"><span class="label">SCORE</span><span class="value" id="hdrScore">0</span></div>
+      <div class="alerts" id="alertsBar"></div>
+      <div class="stat neon"><span class="label">T-MINUS</span><span class="value" id="timer">8:00</span></div>
     </div>
 
     <div class="grid">
-      <!-- Point-and-Click Interactive Viewport Deck -->
-      <div id="stage-viewport" class="stage" onclick="triggerMissedFeedback(event)">
-        <div class="room-img"></div>
-        <div id="target-anchor-layer"></div>
-        <div class="stage-hud">
-          <div id="room-tag" class="room-label">SECTOR OVERVIEW GRID</div>
-        </div>
-      </div>
-
-      <!-- Control Sidebar Deck Layout Panels -->
-      <div class="sidebar">
-        <div>
-          <div style="font-size:9px; color:var(--muted); letter-spacing:0.2em; margin-bottom:6px;">LIVE TERMINAL BROADCAST</div>
-          <div id="terminal-box" class="terminal-box">> Awaiting mainframe connection parameters...</div>
+      <div>
+        <div class="cluebar">
+          <div class="cluebar-head">
+            <span class="classified">CLASSIFIED RIDDLE</span>
+            <span class="clue-n" id="clueLabel">CLUE 01 OF 05</span>
+            <span style="flex:1"></span>
+            <span style="font-size:10px;letter-spacing:.2em;color:var(--muted)" id="roomNow">LOCATION: THE CAPTAIN'S STUDY</span>
+          </div>
+          <div class="riddle-text" id="riddleText">—</div>
         </div>
 
-        <div>
-          <div style="font-size:9px; color:var(--muted); letter-spacing:0.2em; margin-bottom:6px;">SECTOR AGENT MANIFEST</div>
-          <div id="manifest-container" style="display:flex; flex-direction:column; gap:6px;">
-            <!-- Rendered by live websocket frames -->
+        <div class="stage" id="stage" style="position:relative;">
+          <img class="room-img" id="imgStudy" src="glean.com" alt="Study"/>
+          <div id="hotspotLayer" style="position:absolute;inset:0;z-index:4"></div>
+          <div class="stage-hud">
+            <div class="room-label" id="roomLabel">THE CAPTAIN'S STUDY</div>
           </div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- Screen Stage 3: Escape Leaderboard Terminal Layout -->
-  <div id="screen-victory" class="screen">
-    <div class="login-wrap">
-      <div class="dossier" style="border-color: var(--green);">
-        <h1 class="title-xl" style="font-size:38px;"><span style="color:var(--green); text-shadow:0 0 14px rgba(41,255,136,0.4);">SECTOR CLEARED</span></h1>
-        <p class="subtitle">EXTRACTION ROUTINE SUCCESSFUL</p>
-        
-        <div style="text-align:left; margin-bottom:20px;">
-          <span style="font-size:10px; color:var(--muted); letter-spacing:0.1em;">FINAL LOBBY RANKINGS:</span>
-          <div id="victory-container" style="margin-top:10px; display:flex; flex-direction:column; gap:6px;"></div>
+      <div class="side">
+        <div class="panel"><h4>MISSION PROGRESS</h4><div class="progress-bar" id="progressBar"></div></div>
+        <div class="panel">
+          <h4>LIFELINES · 2</h4>
+          <div class="lifelines">
+            <div class="lifeline" data-ll="skip"><span class="icon">⏭</span><div>SKIP</div></div>
+            <div class="lifeline" data-ll="time"><span class="icon">⏱+</span><div>TIME</div></div>
+          </div>
+          <div class="lifeline-hint">Each lifeline costs -10 pts.</div>
         </div>
-        <button class="btn primary" onclick="window.location.reload()">RE-BOOT PROTOCOL</button>
+        <div class="panel"><h4>LIVE LEADERBOARD</h4>
+          <table class="lb-table" id="lbTable"><thead><tr><th>#</th><th>PLAYER</th><th>PTS</th></tr></thead><tbody></tbody></table>
+        </div>
+        <div class="panel"><h4>SYSTEM</h4>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn ghost" id="soundBtn" style="flex:1">🔊 SOUND: ON</button>
+            <button class="btn ghost" id="fsBtn" style="flex:1">⛶ FULLSCREEN</button>
+          </div>
+          <div style="font-size:10px;color:var(--muted);margin-top:10px;line-height:1.5">Responsive layout enabled for phones and smaller screens.</div>
+        </div>
       </div>
     </div>
-  </div>
-</div>
+  </section>
 
-<script>
-  const socket = io();
-  let myRoom = "";
-  let myName = "";
-  let gameStep = 0;
-  let timerClock = 600;
-  let clockLoop = null;
-
-  // Exact 3-stage puzzle nodes configurations array mapped using coordinate spaces
-  const sequenceGrid = [
-    {
-      riddle: "Locate the primary server node infrastructure block to disconnect decentralized mainframe core tracking matrix units.",
-      posX: 42, posY: 25, widthX: 14, heightY: 18, tag: "MAIN CORE TERMINAL"
-    },
-    {
-      riddle: "Severe the underground optical bypass emergency line routing found down directly within right access floor framework spaces.",
-      posX: 75, posY: 70, widthX: 15, heightY: 15, tag: "OPTIC FLOW JUNCTION"
-    },
-    {
-      riddle: "Override the final manual fallback circuit breaker switch bracket found directly along the leftmost bulkhead architecture structural rails.",
-      posX: 8, posY: 40, widthX: 12, heightY: 20, tag: "SAFETY INTERRUPT CONTROL"
-    }
-  ];
-
-  function connectMultiplayerDeck() {
-    myName = document.getElementById('input-name').value.trim();
-    myRoom = document.getElementById('input-room').value.trim().toUpperCase();
-
-    if(!myName || !myRoom) {
-      alert("ACCESS DISALLOWED: Valid registration properties required.");
-      return;
-    }
-
-    socket.emit('joinRoom', { roomCode: myRoom, username: myName });
-
-    document.getElementById('hud-name').innerText = myName.toUpperCase();
-    document.getElementById('hud-room').innerText = myRoom;
-    document.getElementById('screen-auth').classList.remove('active');
-    document.getElementById('screen-game').classList.add('active');
-
-    loadActivePuzzleNode();
-    kickoffTimer();
-    postLog("Handshake verified. Joined secure operational channel network.");
-  }
-
-  function loadActivePuzzleNode() {
-    const layer = document.getElementById('target-anchor-layer');
-    layer.innerHTML = "";
-
-    if(gameStep >= sequenceGrid.length) {
-      escapeSuccessTrigger();
-      return;
-    }
-
-    const data = sequenceGrid[gameStep];
-    document.getElementById('riddle-text').innerText = data.riddle;
-    document.getElementById('clue-level').innerText = `DECRYPTION ID: #0${gameStep + 1}`;
-    document.getElementById('hud-progress').innerText = `${gameStep} / ${sequenceGrid.length}`;
-    document.getElementById('room-tag').innerText = data.tag;
-
-    // Build responsive element bounding block maps matching coordinates layout rules
-    const node = document.createElement('div');
-    node.className = "hotspot";
-    node.style.left = `${data.posX}%`;
-    node.style.top = `${data.posY}%`;
-    node.style.width = `${data.widthX}%`;
-    node.style.height = `${data.heightY}%`;
-
-    node.addEventListener('click', (e) => {
-      e.stopPropagation();
-      handleSuccessfulNodeMatch();
-    });
-
-    layer.appendChild(node);
-  }
-
-  function handleSuccessfulNodeMatch() {
-    gameStep++;
-    // Toggle active alert indicator nodes layout from original visual mockup blueprints
-    if(document.getElementById(`alert-${gameStep}`)) {
-      document.getElementById(`alert-${gameStep}`).classList.remove('off');
-    }
-
-    postLog(`DECRYPTED: Bypass lock layer [0${gameStep}] deactivated successfully.`);
-    socket.emit('playerProgress', { roomCode: myRoom, score: gameStep });
-    loadActivePuzzleNode();
-  }
-
-  function triggerMissedFeedback(e) {
-    const box = document.getElementById('stage-viewport');
-    box.classList.remove('wobble-anim');
-    void box.offsetWidth;
-    box.classList.add('wobble-anim');
-    postLog("CORRUPTION: Invalid system terminal interception vector attempt.", true);
-  }
-
-  function escapeSuccessTrigger() {
-    clearInterval(clockLoop);
-    const timeRemainingStr = document.getElementById('timer').innerText;
-    postLog("CLEAR: Secure firewall mainframe access node conquered.");
-    socket.emit('playerEscaped', { roomCode: myRoom, finalTime: timeRemainingStr });
-
-    document.getElementById('screen-game').classList.remove('active');
-    document.getElementById('screen-victory').classList.add('active');
-  }
-
-  socket.on('roomUpdate', (currentManifest) => {
-    renderManifestView('manifest-container', currentManifest, false);
-    renderManifestView('victory-container', currentManifest, true);
-  });
-
-  socket.on('systemAlert', (txtMsg) => {
-    postLog(`BROADCAST: ${txtMsg}`);
-  });
-
-  function renderManifestView(targetContainerId, manifestArray, displayFinishTimes) {
-    const list = document.getElementById(targetContainerId);
-    if(!list) return;
-    list.innerHTML = "";
-
-    manifestArray.sort((a,b) => b.score - a.score);
-
-    manifestArray.forEach(p => {
-      const row = document.createElement('div');
-      row.className = `player-row ${p.name === myName ? 'me' : ''} ${p.finished ? 'clear' : ''}`;
-      
-      let badge = `LVL 0${p.score}`;
-      if(p.finished) {
-        badge = displayFinishTimes ? `CLEARED (${p.finalTime || '00:00'})` : "✓ ESCAPED";
-      }
-
-      row.innerHTML = `<span>${p.name.toUpperCase()}</span><span style="color:${p.finished ? 'var(--green)':'var(--cyan)'}; font-weight:bold;">${badge}</span>`;
-      list.appendChild(row);
-    });
-  }
-
-  function postLog(msgText, errorStatus = false) {
-    const outputBox = document.getElementById('terminal-box');
-    const syntax = errorStatus ? `color:var(--neon); text-shadow:0 0 4px rgba(255,42,60,0.3);` : ``;
-    outputBox.innerHTML += `<div style="margin-top:3px; ${syntax}">> ${msgText}</div>`;
-    outputBox.scrollTop = outputBox.scrollHeight;
-  }
-
-  function kickoffTimer() {
-    const timeDisplay = document.getElementById('timer');
-    clockLoop = setInterval(() => {
-      timerClock--;
-      let m = Math.floor(timerClock / 60).toString().padStart(2,'0');
-      let s = (timerClock % 60).toString().padStart(2,'0');
-      timeDisplay.innerText = `${m}:${s}`;
-
-      if(timerClock <= 120) timeDisplay.className = "value warning";
-      if(timerClock <= 45) timeDisplay.className = "value danger";
-
-      if(timerClock <= 0) {
-        clearInterval(clockLoop);
-        alert("TERMINATION ENGINE INITIALIZED: Extraction time window expired.");
-        window.location.reload();
-      }
-    }, 1000);
-  }
-</script>
-</body>
-</html>
+  <section class="screen" id="scrEnd">
+    <div class="end-card dossier">
+      <div class="classified" id="endVerdict">MISSION ACCOMPLISHED</div>
+      <div class="badge"><span id="badgeRank">ELITE<br>AGENT</span></div>
+      <div class="title-xl" style="font-size:26px"><span class="red" id="endTitle">MOLE IDENTIFIED</span></div>
+      <p style="color:var(--muted);letter-spacing:.2em;font-size:11px" id="endSub">ACCESS TO G.R.E.A.T. AI NETWORK GRANTED</p>
+      <div class="final-stats">
+        <div class="fs"><div class="num" id="fsScore">0</div><div class="lb">FINAL SCORE</div></div>
+        <div class="fs"><div class="
