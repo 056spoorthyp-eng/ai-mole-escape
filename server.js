@@ -10,57 +10,72 @@ const io = new Server(server, {
 
 app.use(express.static('public'));
 
-const lobbies = {}; // Stores room data: { roomCode: { players: { socketId: { name, score, finished } } } }
+// Tracks room states: { roomCode: { players: { socketId: { name, score, clue, finished } } } }
+const lobbies = {}; 
 
 io.on('connection', (socket) => {
-    console.log(`User connected: ${socket.id}`);
+    console.log(`Agent connected to deck: ${socket.id}`);
 
-    // Create or Join Room
+    // Handles Room Handshake Lifecycle
     socket.on('joinRoom', ({ roomCode, username }) => {
-        socket.join(roomCode);
+        const cleanRoom = roomCode.trim().toUpperCase();
+        const cleanName = username.trim();
         
-        if (!lobbies[roomCode]) {
-            lobbies[roomCode] = { players: {} };
+        socket.join(cleanRoom);
+        
+        if (!lobbies[cleanRoom]) {
+            lobbies[cleanRoom] = { players: {} };
         }
 
-        lobbies[roomCode].players[socket.id] = {
-            name: username,
+        lobbies[cleanRoom].players[socket.id] = {
+            name: cleanName,
             score: 0,
-            finished: false
+            clue: 1,
+            finished: false,
+            updatedAt: Date.now()
         };
 
-        // Notify everyone in the room about the updated player list
-        io.to(roomCode).emit('roomUpdate', Object.values(lobbies[roomCode].players));
+        // Broadcast synced data updates to all sockets inside the sector tunnel
+        const currentManifest = Object.values(lobbies[cleanRoom].players);
+        io.to(cleanRoom).emit('roomUpdate', currentManifest);
+        io.to(cleanRoom).emit('systemAlert', `${cleanName.toUpperCase()} ESTABLISHED SECTOR CONNECTION.`);
     });
 
-    // Track Player Progress (e.g., solved a riddle)
-    socket.on('playerProgress', ({ roomCode, score }) => {
-        if (lobbies[roomCode] && lobbies[roomCode].players[socket.id]) {
-            lobbies[roomCode].players[socket.id].score = score;
-            io.to(roomCode).emit('roomUpdate', Object.values(lobbies[roomCode].players));
-        }
-    });
-
-    // Player Escaped
-    socket.on('playerEscaped', ({ roomCode, finalTime }) => {
-        if (lobbies[roomCode] && lobbies[roomCode].players[socket.id]) {
-            lobbies[roomCode].players[socket.id].finished = true;
-            lobbies[roomCode].players[socket.id].finalTime = finalTime;
+    // Handles Game Progress Metric Overrides
+    socket.on('playerProgress', ({ roomCode, score, clue }) => {
+        const cleanRoom = roomCode.trim().toUpperCase();
+        if (lobbies[cleanRoom] && lobbies[cleanRoom].players[socket.id]) {
+            lobbies[cleanRoom].players[socket.id].score = score;
+            lobbies[cleanRoom].players[socket.id].clue = clue || 1;
+            lobbies[cleanRoom].players[socket.id].updatedAt = Date.now();
             
-            io.to(roomCode).emit('roomUpdate', Object.values(lobbies[roomCode].players));
-            io.to(roomCode).emit('systemAlert', `${lobbies[roomCode].players[socket.id].name} HAS ESCAPED PROTOCOL!`);
+            io.to(cleanRoom).emit('roomUpdate', Object.values(lobbies[cleanRoom].players));
         }
     });
 
-    // Handle Disconnects
+    // Handles Execution Escape Completion Status
+    socket.on('playerEscaped', ({ roomCode, score, finalTime }) => {
+        const cleanRoom = roomCode.trim().toUpperCase();
+        if (lobbies[cleanRoom] && lobbies[cleanRoom].players[socket.id]) {
+            lobbies[cleanRoom].players[socket.id].score = score;
+            lobbies[cleanRoom].players[socket.id].finished = true;
+            lobbies[cleanRoom].players[socket.id].finalTime = finalTime;
+            lobbies[cleanRoom].players[socket.id].updatedAt = Date.now();
+            
+            io.to(cleanRoom).emit('roomUpdate', Object.values(lobbies[cleanRoom].players));
+            io.to(cleanRoom).emit('systemAlert', `${lobbies[cleanRoom].players[socket.id].name.toUpperCase()} ACCESSED ESCAPE NODE PROTOCOL.`);
+        }
+    });
+
+    // Handles Connection Breaks Safely
     socket.on('disconnect', () => {
         for (const roomCode in lobbies) {
             if (lobbies[roomCode].players[socket.id]) {
-                const name = lobbies[roomCode].players[socket.id].name;
+                const lostName = lobbies[roomCode].players[socket.id].name;
                 delete lobbies[roomCode].players[socket.id];
                 
                 io.to(roomCode).emit('roomUpdate', Object.values(lobbies[roomCode].players));
-                io.to(roomCode).emit('systemAlert', `${name} disconnected.`);
+                io.to(roomCode).emit('systemAlert', `CONNECTION SECURE LOSS: ${lostName.toUpperCase()}`);
                 
                 if (Object.keys(lobbies[roomCode].players).length === 0) {
                     delete lobbies[roomCode];
@@ -71,4 +86,4 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`[SYSTEM READY]: Port listener active on ${PORT}`));
