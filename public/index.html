@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>THE AI MOLE // ESCAPE PROTOCOL</title>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+  :root{
+    --bg:#06080c; --panel:rgba(10,14,20,0.88); --neon:#ff2a3c; --cyan:#29e5ff;
+    --amber:#ffb347; --green:#29ff88; --muted:#7a8290; --text:#e6eef7; --gold:#c9a574;
+    --mono:'Courier New', ui-monospace, monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--mono);overflow-x:hidden}
+  body{min-height:100vh;background:radial-gradient(ellipse at top,#1a0008 0%,transparent 55%),radial-gradient(ellipse at bottom right,#001822 0%,transparent 55%),linear-gradient(180deg,#05070b 0%,#0a0d14 100%);position:relative}
+  body::after{content:"";position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(41,229,255,.04) 0 2px,transparent 2px 4px);mix-blend-mode:overlay;opacity:.3;z-index:1}
+  .app{position:relative;z-index:2;max-width:1280px;margin:0 auto;padding:14px 12px 100px}
+  .topbar{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--panel);border:1px solid rgba(255,42,60,.25);border-radius:10px;backdrop-filter:blur(8px);margin-bottom:14px;flex-wrap:wrap}
+  .logo{font-weight:700;letter-spacing:.25em;font-size:12px;color:var(--neon);text-shadow:0 0 10px rgba(255,42,60,.6);display:flex;align-items:center;gap:10px}
+  .logo .dot{width:9px;height:9px;border-radius:50%;background:var(--neon);box-shadow:0 0 10px var(--neon);animation:pulse 1.3s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .topbar .sep{flex:1}
+  .stat{display:flex;flex-direction:column;padding:2px 10px;border-left:1px solid rgba(255,255,255,.06)}
+  .stat .label{font-size:9px;letter-spacing:.2em;color:var(--muted)}
+  .stat .value{font-size:14px;font-weight:700;letter-spacing:.1em}
+  .stat.neon .value{color:var(--neon);text-shadow:0 0 8px rgba(255,42,60,.5)}
+  .stat.cyan .value{color:var(--cyan);text-shadow:0 0 8px rgba(41,229,255,.5)}
+  .stat.green .value{color:var(--green)}
+  #timer.warning{color:var(--amber)!important}
+  #timer.danger{color:var(--neon)!important;animation:blink .8s infinite}
+  @keyframes blink{50%{opacity:.4}}
+  .alerts{display:flex;gap:5px;padding:4px 10px}
+  .alerts .a{width:10px;height:10px;border-radius:50%;background:var(--neon);box-shadow:0 0 8px rgba(255,42,60,.8)}
+  .alerts .a.off{background:transparent;border:1px solid rgba(255,42,60,.3);box-shadow:none;opacity:.3}
+  .btn{font-family:var(--mono);background:transparent;color:var(--text);border:1px solid rgba(255,42,60,.5);padding:10px 16px;border-radius:8px;letter-spacing:.18em;font-size:11px;text-transform:uppercase;cursor:pointer;transition:all .2s}
+  .btn:hover{background:rgba(255,42,60,.15);box-shadow:0 0 14px rgba(255,42,60,.4);transform:translateY(-1px)}
+  .btn.primary{background:var(--neon);color:#0a0004;border-color:var(--neon);font-weight:700}
+  .btn.primary:hover{background:#ff5566;box-shadow:0 0 22px rgba(255,42,60,.7)}
+  .btn.ghost{border-color:rgba(255,255,255,.15);color:var(--muted)}
+  .screen{display:none;animation:fadeUp .5s ease}
+  .screen.active{display:block}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .login-wrap{max-width:560px;margin:40px auto 0;text-align:center}
+  .title-xl{font-size:clamp(28px,5.5vw,54px);font-weight:800;letter-spacing:.15em;margin:0 0 4px;line-height:1.05}
+  .title-xl .red{color:var(--neon);text-shadow:0 0 18px rgba(255,42,60,.6)}
+  .subtitle{font-size:11px;letter-spacing:.35em;color:var(--muted);margin:0 0 24px}
+  .glitch{position:relative;display:inline-block}
+  .glitch::before,.glitch::after{content:attr(data-text);position:absolute;inset:0;mix-blend-mode:screen;pointer-events:none}
+  .glitch::before{color:var(--cyan);transform:translate(-2px,0);animation:g1 3s infinite}
+  .glitch::after{color:var(--neon);transform:translate(2px,0);animation:g2 3s infinite}
+  @keyframes g1{0%,92%,100%{clip-path:inset(0)}94%{clip-path:inset(30% 0 40% 0)}96%{clip-path:inset(60% 0 10% 0)}}
+  @keyframes g2{0%,92%,100%{clip-path:inset(0)}94%{clip-path:inset(50% 0 20% 0)}96%{clip-path:inset(10% 0 70% 0)}}
+  .dossier{background:var(--panel);border:1px solid rgba(255,42,60,.25);border-radius:12px;padding:24px;backdrop-filter:blur(10px);box-shadow:0 24px 80px rgba(0,0,0,.6)}
+  .field{display:block;text-align:left;margin:12px 0}
+  .field label{font-size:10px;letter-spacing:.25em;color:var(--muted);display:block;margin-bottom:6px}
+  .field input{width:100%;background:#05080d;color:var(--text);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:13px 12px;font-family:var(--mono);font-size:14px;letter-spacing:.05em}
+  .field input:focus{outline:none;border-color:var(--neon);box-shadow:0 0 0 3px rgba(255,42,60,.2)}
+  .briefing{max-width:820px;margin:20px auto}
+  .typing-line{font-size:14px;line-height:1.8;min-height:1.6em}
+  .prompt::before{content:"> ";color:var(--neon)}
+  .grid{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px}
+  .stage{
+    position:relative;
+    border-radius:14px;
+    overflow:hidden;
+    border:2px solid #3a2010;
+    box-shadow:0 30px 80px rgba(0,0,0,.8),inset 0 0 140px rgba(0,0,0,.5);
+    aspect-ratio:16/10;
+    min-height:380px;
+    background:#0a0604;
+  }
+  .room-img{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    display:block;
+    z-index:1;
+  }
+  .hotspot{
+    position:absolute;
+    cursor:pointer;
+    border-radius:10px;
+    transition:all .2s;
+    background:rgba(255,255,255,0.01);
+    z-index:5;
+    touch-action:manipulation;
+  }
+  .hotspot::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    border-radius:inherit;
+    box-shadow:inset 0 0 0 2px rgba(255,207,127,.22),0 0 0 0 transparent;
+    transition:all .25s;
+  }
+  .hotspot:hover::before,.hotspot:active::before{
+    box-shadow:inset 0 0 0 2px rgba(255,207,127,.95),0 0 28px rgba(255,207,127,.55);
+    background:radial-gradient(ellipse at center,rgba(255,207,127,.15),transparent 70%);
+  }
+  .hotspot .lbl{
+    position:absolute;left:50%;bottom:-28px;transform:translateX(-50%);
+    background:rgba(5,8,13,.95);color:var(--gold);font-size:10px;letter-spacing:.18em;
+    padding:4px 10px;border:1px solid var(--gold);border-radius:4px;white-space:nowrap;
+    opacity:0;transition:opacity .15s;pointer-events:none;text-transform:uppercase;z-index:6;
+    box-shadow:0 6px 14px rgba(0,0,0,.6)
+  }
+  .hotspot:hover .lbl,.hotspot:active .lbl{opacity:1}
+  .hotspot.correct{animation:found 1.3s}
+  .hotspot.correct::before{box-shadow:inset 0 0 0 3px var(--green),0 0 40px rgba(41,255,136,.7);background:radial-gradient(ellipse at center,rgba(41,255,136,.25),transparent 70%)}
+  .hotspot.wrong{animation:wobble .5s}
+  .hotspot.wrong::before{box-shadow:inset 0 0 0 3px var(--neon),0 0 30px rgba(255,42,60,.7);background:radial-gradient(ellipse at center,rgba(255,42,60,.25),transparent 70%)}
+  .hotspot.dead{opacity:.55;pointer-events:none}
+  .hotspot.dead::before{box-shadow:inset 0 0 0 2px rgba(120,120,120,.5);background:rgba(0,0,0,.18)}
+  @keyframes found{0%,100%{filter:brightness(1)}50%{filter:brightness(1.5)}}
+  @keyframes wobble{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+  .stage-hud{position:absolute;left:12px;bottom:12px;right:12px;z-index:10;display:flex;justify-content:space-between;gap:10px;pointer-events:none;align-items:flex-end}
+  .room-label{background:rgba(5,8,13,.88);color:var(--gold);padding:6px 12px;border:1px solid var(--gold);border-radius:4px;font-size:10px;letter-spacing:.3em;text-transform:uppercase;pointer-events:auto}
+  .cluebar{background:var(--panel);border:1px solid rgba(255,42,60,.25);border-radius:10px;padding:14px 16px;margin-bottom:12px}
+  .cluebar-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+  .classified{font-size:9px;letter-spacing:.3em;color:var(--neon);padding:3px 8px;border:1px solid var(--neon);border-radius:3px}
+  .clue-n{font-size:10px;letter-spacing:.2em;color:var(--muted)}
+  .riddle-text{font-size:14px;line-height:1.75;font-style:italic;color:var(--text);border-left:3px solid var(--neon);padding:10px 14px;background:linear-gradient(90deg,rgba(255,42,60,.06),transparent);border-radius:0 4px 4px 0;white-space:pre-line}
+  .modal{position:fixed;inset:0;z-index:300;background:rgba(2,4,8,.88);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;padding:20px;animation:fadeUp .3s}
+  .modal.on{display:flex}
+  .modal-card{max-width:560px;width:100%;background:var(--panel);border:1px solid var(--cyan);border-radius:12px;padding:24px;box-shadow:0 0 40px rgba(41,229,255,.3);max-height:90vh;overflow-y:auto}
+  .modal-card h3{margin:0 0 14px;font-size:14px;letter-spacing:.2em;color:var(--cyan)}
+  .q-text{font-size:16px;line-height:1.55;margin-bottom:16px}
+  .choices{display:grid;gap:10px}
+  .choice{text-align:left;padding:13px 16px;background:rgba(10,14,20,.6);border:1px solid rgba(255,255,255,.08);border-radius:6px;cursor:pointer;color:var(--text);font-family:var(--mono);font-size:13px;letter-spacing:.05em;transition:all .2s}
+  .choice:hover:not(:disabled){border-color:var(--cyan);transform:translateX(3px)}
+  .choice.correct{border-color:var(--green);background:rgba(41,255,136,.12);color:var(--green)}
+  .choice.wrong{border-color:var(--neon);background:rgba(255,42,60,.12);color:var(--neon);animation:wobble .4s}
+  .side{display:flex;flex-direction:column;gap:12px}
+  .panel{background:var(--panel);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:14px;backdrop-filter:blur(8px)}
+  .panel h4{margin:0 0 10px;font-size:10px;letter-spacing:.3em;color:var(--neon);display:flex;align-items:center;gap:8px}
+  .panel h4::before{content:"";width:6px;height:6px;background:var(--neon);border-radius:50%;box-shadow:0 0 8px var(--neon)}
+  .progress-bar{display:flex;gap:5px}
+  .pnode{flex:1;height:7px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;position:relative}
+  .pnode.done{background:var(--green);box-shadow:0 0 8px rgba(41,255,136,.5)}
+  .pnode.current{background:rgba(255,42,60,.3)}
+  .pnode.current::after{content:"";position:absolute;inset:0;background:var(--neon);animation:fill 1.5s ease infinite alternate}
+  @keyframes fill{from{transform:translateX(-70%)}to{transform:translateX(0)}}
+  .lifelines{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .lifeline{padding:12px 6px;background:rgba(10,14,20,.5);border:1px solid rgba(41,229,255,.25);border-radius:8px;text-align:center;cursor:pointer;transition:all .2s;color:var(--cyan);font-size:10px;letter-spacing:.15em}
+  .lifeline:hover:not(.used){background:rgba(41,229,255,.08);transform:translateY(-2px)}
+  .lifeline .icon{font-size:18px;display:block;margin-bottom:4px}
+  .lifeline.used{opacity:.25;cursor:not-allowed;filter:grayscale(1)}
+  .lifeline-hint{font-size:10px;color:var(--muted);margin-top:8px;line-height:1.4}
+  .lb-table{width:100%;border-collapse:collapse;font-size:12px}
+  .lb-table th,.lb-table td{text-align:left;padding:7px 6px;border-bottom:1px solid rgba(255,255,255,.06);letter-spacing:.08em}
+  .lb-table th{color:var(--muted);font-size:9px;letter-spacing:.25em;font-weight:400}
+  .lb-table .rank{color:var(--neon);font-weight:700;width:30px}
+  .lb-table tr.me td{color:var(--amber);background:rgba(255,179,71,.05)}
+  .toast-wrap{position:fixed;top:20px;right:20px;z-index:999;display:flex;flex-direction:column;gap:8px;max-width:340px}
+  .toast{padding:11px 15px;background:var(--panel);border-left:3px solid var(--neon);border-radius:4px;backdrop-filter:blur(8px);font-size:12px;letter-spacing:.06em;box-shadow:0 8px 30px rgba(0,0,0,.6);animation:toastin .3s ease}
+  .toast.ok{border-color:var(--green)}
+  .toast.warn{border-color:var(--amber)}
+  @keyframes toastin{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
+  .overlay{position:fixed;inset:0;z-index:500;background:rgba(2,4,8,.85);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;animation:fadeUp .3s;padding:20px}
+  .overlay.on{display:flex}
+  .overlay-card{max-width:520px;width:100%;text-align:center;padding:36px 24px;background:var(--panel);border:1px solid var(--neon);border-radius:14px;box-shadow:0 0 40px rgba(255,42,60,.4)}
+  .granted{color:var(--green);text-shadow:0 0 30px rgba(41,255,136,.7)}
+  .denied{color:var(--neon);text-shadow:0 0 30px rgba(255,42,60,.7)}
+  .big{font-size:38px;font-weight:800;letter-spacing:.2em;margin:8px 0}
+  .end-card{text-align:center;max-width:680px;margin:30px auto;padding:34px 24px}
+  .badge{width:160px;height:160px;margin:10px auto 16px;border-radius:50%;background:conic-gradient(var(--neon),var(--cyan),var(--amber),var(--neon));display:flex;align-items:center;justify-content:center;box-shadow:0 0 50px rgba(255,42,60,.4);position:relative;animation:spin 12s linear infinite}
+  .badge::before{content:"";position:absolute;inset:8px;background:#0b1016;border-radius:50%}
+  .badge span{position:relative;font-size:14px;letter-spacing:.2em;font-weight:800;color:var(--neon);text-align:center;padding:0 12px;line-height:1.2}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .final-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0}
+  .fs{padding:12px;background:rgba(10,14,20,.5);border:1px solid rgba(255,255,255,.08);border-radius:8px}
+  .fs .num{font-size:24px;color:var(--neon);font-weight:800}
+  .fs .lb{font-size:9px;letter-spacing:.25em;color:var(--muted);margin-top:4px}
+  .admin-toggle{position:fixed;bottom:18px;right:18px;z-index:50;width:42px;height:42px;border-radius:50%;background:rgba(10,14,20,.8);border:1px solid rgba(255,42,60,.4);color:var(--neon);font-size:18px;cursor:pointer;backdrop-filter:blur(6px)}
+  @media (max-width:980px){.grid{grid-template-columns:1fr}.side{display:grid;grid-template-columns:1fr 1fr;gap:12px}}
+  @media (max-width:700px){.app{padding:10px 10px 80px}.topbar{gap:8px;padding:10px 10px}.stat{padding:0 6px;border-left:none}.stage{min-height:260px}.side{grid-template-columns:1fr}.toast-wrap{left:10px;right:10px;top:12px;max-width:none}.btn{padding:11px 12px;font-size:10px}}
+  @media (max-width:600px){.final-stats{grid-template-columns:1fr}.big{font-size:26px}}
+</style>
+</head>
+<body>
+<button class="admin-toggle" id="adminBtn">⚙</button>
+<div class="toast-wrap" id="toasts"></div>
+<div class="overlay" id="grantedOverlay"><div class="overlay-card"><div class="big granted">ACCESS GRANTED</div><p style="color:var(--muted);letter-spacing:.2em;font-size:11px;margin:0">CLEARANCE VERIFIED · +100 PTS</p></div></div>
+<div class="overlay" id="deniedOverlay"><div class="overlay-card"><div class="big denied">ACCESS DENIED</div><p style="color:var(--muted);letter-spacing:.2em;font-size:11px;margin:0">BIOMETRIC MISMATCH · -20 PTS</p></div></div>
+<div class="modal" id="challengeModal"><div class="modal-card" id="challengeCard"></div></div>
+
+<div class="app">
+  <section class="screen active" id="scrLogin">
+    <div class="login-wrap">
+      <div class="title-xl"><span class="glitch" data-text="THE AI MOLE">THE AI MOLE</span></div>
+      <div class="title-xl"><span class="red">ESCAPE PROTOCOL</span></div>
+      <div class="subtitle">// CLASSIFIED — LEVEL 7 CLEARANCE REQUIRED //</div>
+      <div class="dossier">
+        <div style="font-size:11px;letter-spacing:.25em;color:var(--muted);margin-bottom:14px">PLAYER REGISTRATION TERMINAL</div>
+        <div class="field"><label>PLAYER NAME</label><input id="teamName" placeholder="e.g. SPOORTHY" maxlength="28"/></div>
+        <button class="btn primary" id="startBtn" style="width:100%;margin-top:10px;padding:14px;font-size:12px">▶ ENTER THE STUDY</button>
+        <div style="margin-top:12px;font-size:10px;color:var(--muted);letter-spacing:.16em">ALL PLAYERS JOIN THE SAME SHARED ROOM</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen" id="scrBrief">
+    <div class="briefing">
+      <div class="dossier">
+        <div style="display:flex;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+          <span class="classified">TOP SECRET</span>
+          <span style="font-size:10px;letter-spacing:.25em;color:var(--muted)">DOSSIER #AIM-0547</span>
+        </div>
+        <div id="briefText" class="typing-line"></div>
+        <button class="btn primary" id="briefBtn" style="margin-top:24px;display:none">▶ START MISSION</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen" id="scrGame">
+    <div class="topbar">
+      <div class="logo"><span class="dot"></span><span>AIM // ESCAPE PROTOCOL</span></div>
+      <div class="sep"></div>
+      <div class="stat"><span class="label">PLAYER</span><span class="value" id="hdrTeam">—</span></div>
+      <div class="stat cyan"><span class="label">CLUE</span><span class="value" id="hdrClue">1/5</span></div>
+      <div class="stat green"><span class="label">SCORE</span><span class="value" id="hdrScore">0</span></div>
+      <div class="alerts" id="alertsBar"></div>
+      <div class="stat neon"><span class="label">T-MINUS</span><span class="value" id="timer">8:00</span></div>
+    </div>
+
+    <div class="grid">
+      <div>
+        <div class="cluebar">
+          <div class="cluebar-head">
+            <span class="classified">CLASSIFIED RIDDLE</span>
+            <span class="clue-n" id="clueLabel">CLUE 01 OF 05</span>
+            <span style="flex:1"></span>
+            <span style="font-size:10px;letter-spacing:.2em;color:var(--muted)" id="roomNow">ROOM: SUMMIT</span>
+          </div>
+          <div class="riddle-text" id="riddleText">—</div>
+        </div>
+
+        <div class="stage" id="stage">
+          <img class="room-img" id="imgStudy" src="/captain-study.png" alt="Captain study" />
+          <div id="hotspotLayer" style="position:absolute;inset:0;z-index:4"></div>
+          <div class="stage-hud">
+            <div class="room-label" id="roomLabel">THE CAPTAIN'S STUDY</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="side">
+        <div class="panel"><h4>MISSION PROGRESS</h4><div class="progress-bar" id="progressBar"></div></div>
+        <div class="panel">
+          <h4>LIFELINES</h4>
+          <div class="lifelines">
+            <div class="lifeline" data-ll="skip"><span class="icon">⏭</span><div>SKIP</div></div>
+            <div class="lifeline" data-ll="time"><span class="icon">⏱+</span><div>TIME</div></div>
+          </div>
+          <div class="lifeline-hint">Each lifeline costs -10 pts.</div>
+        </div>
+        <div class="panel"><h4>LIVE LEADERBOARD</h4>
+          <table class="lb-table" id="lbTable"><thead><tr><th>#</th><th>PLAYER</th><th>PTS</th></tr></thead><tbody></tbody></table>
+        </div>
+        <div class="panel"><h4>SYSTEM</h4>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn ghost" id="soundBtn" style="flex:1">🔊 SOUND: ON</button>
+            <button class="btn ghost" id="fsBtn" style="flex:1">⛶ FULLSCREEN</button>
+          </div>
+          <div style="font-size:10px;color:var(--muted);margin-top:10px;line-height:1.5">Single shared room sync is active.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen" id="scrEnd">
+    <div class="end-card dossier">
+      <div class="classified" id="endVerdict">MISSION ACCOMPLISHED</div>
+      <div class="badge"><span id="badgeRank">ELITE<br>AGENT</span></div>
+      <div class="title-xl" style="font-size:26px"><span class="red" id="endTitle">MOLE IDENTIFIED</span></div>
+      <p style="color:var(--muted);letter-spacing:.2em;font-size:11px" id="endSub">ACCESS TO G.R.E.A.T. AI NETWORK GRANTED</p>
+      <div class="final-stats">
+        <div class="fs"><div class="num" id="fsScore">0</div><div class="lb">FINAL SCORE</div></div>
+        <div class="fs"><div class="num" id="fsTime">0:00</div><div class="lb">COMPLETION TIME</div></div>
+        <div class="fs"><div class="num" id="fsRank">#1</div><div class="lb">LEADERBOARD</div></div>
+      </div>
+      <h4 style="color:var(--neon);letter-spacing:.25em;font-size:11px;margin:18px 0 6px">LEADERBOARD</h4>
+      <table class="lb-table" id="endLb"><thead><tr><th>#</th><th>PLAYER</th><th>PTS</th></tr></thead><tbody></tbody></table>
+      <div style="margin-top:22px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <button class="btn primary" id="playAgain">▶ NEW MISSION</button>
+        <button class="btn ghost" id="shareBtn">📸 SHARE RANK</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen" id="scrAdmin">
+    <div class="dossier" style="max-width:820px;margin:20px auto">
+      <div style="display:flex;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+        <div><div class="classified">ADMIN TERMINAL</div><h2 style="margin:6px 0 0;letter-spacing:.15em">CONTROL PANEL</h2></div>
+        <button class="btn ghost" id="adminClose">✕ EXIT</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:14px">
+        <button class="btn" id="aStart">▶ START</button>
+        <button class="btn" id="aReset">⟲ RESET</button>
+        <button class="btn" id="aUnlock">🔓 UNLOCK</button>
+        <button class="btn" id="aExport">⬇ EXPORT CSV</button>
+      </div>
+      <table class="lb-table" id="adminLb"><thead><tr><th>#</th><th>PLAYER</th><th>CLUE</th><th>PTS</th></tr></thead><tbody></tbody></table>
+    </div>
+  </section>
+</div>
+
+<script>
+const socket = io();
+const GAME_SECONDS = 480;
+
+const HOTSPOTS = [
+  { id:'map',   label:'WORLD MAP',   x:34, y:10, w:36, h:34 },
+  { id:'frame', label:'PHOTO FRAME', x:69, y:40, w:12, h:28 },
+  { id:'fire',  label:'FIRE',        x:2,  y:40, w:18, h:33 },
+  { id:'ship',  label:'SHIP',        x:2,  y:8,  w:18, h:18 },
+  { id:'books', label:'BOOKS',       x:86, y:45, w:12, h:24 },
+  { id:'chair',    label:'LEATHER CHAIR',  x:21, y:41, w:16, h:31, decoy:true },
+  { id:'spyglass', label:'SPYGLASS',       x:63, y:65, w:24, h:10, decoy:true },
+  { id:'candle',   label:'CANDLE',         x:95, y:32, w:4,  h:14, decoy:true }
+];
+
+const TARGET_ORDER = ['map','frame','fire','ship','books'];
+
+const CLUES = [
+  {
+    title:'FRAGMENT #1 — THE SILENT CARTOGRAPHER',
+    riddle:'I hold every path yet never move.\nKings divide me, sailors trust me.\nFold me once, and the world disappears.',
+    challenge:{
+      q:'Which session was presented by Brendan and Darshan together?',
+      choices:[
+        'Meeting Etiquette',
+        'Being True owner of your role',
+        'The Future of Treasury',
+        'Cross Functional Problem solving'
+      ]
+    }
+  },
+  {
+    title:'FRAGMENT #2 — THE FROZEN MOMENT',
+    riddle:'I steal moments without touching time.\nBreak me, and memories still survive.',
+    challenge:{
+      q:'What does GREAT.AI stand for in the summit theme?',
+      choices:[
+        'Growth, Results, Execution and Technology in AI',
+        'Growth, Resilience & Excellence in AI-powered Treasury',
+        'Global Reach, Efficiency and Agility in Treasury',
+        'Goals, Risk and Execution Across Treasury'
+      ]
+    }
+  },
+  {
+    title:'FRAGMENT #3 — THE SILENT DANCER',
+    riddle:'I am born hungry,\nyet die if I drink.\nI dance without feet\nand whisper without lungs.',
+    challenge:{
+      q:'Project Aura refers to which of the following?',
+      choices:[
+        'Treasury Hub launch',
+        'Axur Integration',
+        'Engagement Survey',
+        'Treasury Dashboard Review'
+      ]
+    }
+  },
+  {
+    title:'FRAGMENT #4 — THE ROVING HULL',
+    riddle:'Ship\nI carry no feet, yet oceans I roam.\nThrough storms and silence, the sea is my home.',
+    challenge:{
+      q:'Which of the following is NOT a pillar of ownership?',
+      choices:[
+        'Accountability',
+        'Transparency',
+        'Agile Communication',
+        'Team Collaboration'
+      ]
+    }
+  },
+  {
+    title:'FRAGMENT #5 — THE HIDDEN SHELVES',
+    riddle:'Tied up together, yet worlds inside stay free.\nOpen our backs, and knowledge holds the key.',
+    challenge:{
+      q:'What is the main purpose of STB (Squeeze The Box)?',
+      choices:[
+        'To improve meeting etiquette across teams',
+        'To identify processes, activities, and deliverables for automation, simplification, rationalization, and optimization',
+        'To track employee engagement survey results',
+        'To review treasury dashboards and reports'
+      ]
+    }
+  }
+];
+
+const RANKS = [
+  {min:550,name:'CHIEF INTELLIGENCE<br>OFFICER'},
+  {min:450,name:'ELITE<br>AGENT'},
+  {min:350,name:'AI<br>DECODER'},
+  {min:250,name:'CYBER<br>OPERATIVE'},
+  {min:0,name:'DOUBLE<br>AGENT'}
+];
+
+const BRIEF_LINES = [
+  '> Establishing secure channel… AES-512 · OK',
+  '> Welcome, operative.',
+  '> One chamber. Five classified fragments hidden inside the Captain\'s Study.',
+  '> Every riddle points to an object somewhere in the room.',
+  '> You have 3 ALERTS. Every wrong click burns one.',
+  '> Zero alerts = cover blown. 8 minutes on the clock.',
+  '> Use SKIP or TIME only when it counts.',
+  '> Read carefully. Tap with intention.'
+];
+
+const STATE = {
+  player:'',
+  roomKey:'SUMMIT',
+  room:null,
+  soundOn:true,
+  activeChallenge:null,
+  challengeLocked:false
+};
+
+const $ = id => document.getElementById(id);
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $(id).classList.add('active');
+}
+
+function toast(m,k=''){
+  const t=document.createElement('div');
+  t.className='toast '+k;
+  t.textContent=m;
+  $('toasts').appendChild(t);
+  setTimeout(()=>{t.style.opacity='0';t.style.transform='translateX(30px)';t.style.transition='all .3s'},2400);
+  setTimeout(()=>t.remove(),2800);
+}
+
+function overlay(id){
+  const e=$(id);
+  e.classList.add('on');
+  setTimeout(()=>e.classList.remove('on'),1100);
+}
+
+function fmtTime(s){
+  const safe = Math.max(0, s || 0);
+  const m=Math.floor(safe/60),sc=safe%60;
+  return `${m}:${String(sc).padStart(2,'0')}`;
+}
+
+let AC=null;
+function beep(f=440,d=.1,t='sine',g=.06){
+  if(!STATE.soundOn) return;
+  try{
+    AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+    const o=AC.createOscillator(),gn=AC.createGain();
+    o.type=t;
+    o.frequency.value=f;
+    gn.gain.value=g;
+    o.connect(gn);
+    gn.connect(AC.destination);
+    o.start();
+    gn.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+d);
+    o.stop(AC.currentTime+d+.02);
+  }catch(e){}
+}
+
+function sfx(n){
+  if(n==='granted'){beep(660,.08);setTimeout(()=>beep(880,.14),80)}
+  if(n==='denied')beep(180,.22,'sawtooth',.08);
+  if(n==='tick')beep(1200,.02,'square',.02);
+  if(n==='win')[523,659,784,1046].forEach((f,i)=>setTimeout(()=>beep(f,.15,'triangle',.08),i*140));
+  if(n==='type')beep(1100 + Math.random()*180,.012,'square',.012);
+}
+
+function renderProgress(){
+  const b=$('progressBar');
+  b.innerHTML='';
+  const clueIdx = STATE.room?.clueIdx ?? 0;
+  for(let i=0;i<5;i++){
+    const d=document.createElement('div');
+    d.className='pnode'+(i<clueIdx?' done':i===clueIdx?' current':'');
+    b.appendChild(d);
+  }
+}
+
+function renderAlerts(){
+  const b=$('alertsBar');
+  b.innerHTML='';
+  const alerts = STATE.room?.alerts ?? 3;
+  for(let i=0;i<3;i++){
+    const d=document.createElement('div');
+    d.className='a'+(i<alerts?'':' off');
+    b.appendChild(d);
+  }
+}
+
+function renderLifelines(){
+  const life = STATE.room?.lifelines || {skip:true,time:true};
+  document.querySelectorAll('.lifeline').forEach(l=>{
+    const k=l.dataset.ll;
+    l.classList.toggle('used',!life[k]);
+  });
+}
+
+function renderHotspots(){
+  const layer=$('hotspotLayer');
+  layer.innerHTML='';
+  const wrong = new Set(STATE.room?.wrongThisClue || []);
+
+  HOTSPOTS.forEach(h=>{
+    const d=document.createElement('div');
+    d.className='hotspot';
+    d.style.left=h.x+'%';
+    d.style.top=h.y+'%';
+    d.style.width=h.w+'%';
+    d.style.height=h.h+'%';
+
+    if(wrong.has(h.id)) d.classList.add('dead');
+
+    const lbl=document.createElement('span');
+    lbl.className='lbl';
+    lbl.textContent=h.label;
+    d.appendChild(lbl);
+
+    d.onclick=()=>handleObjectClick(d,h.id);
+    layer.appendChild(d);
+  });
+}
+
+function renderLeaderboardRows(rows, tableId, withClue=false){
+  const tb=$(tableId).querySelector('tbody');
+  tb.innerHTML='';
+
+  rows.forEach((r,i)=>{
+    const tr=document.createElement('tr');
+    if(r.name===STATE.player) tr.className='me';
+    tr.innerHTML = withClue
+      ? `<td class="rank">${i+1}</td><td>${r.name}</td><td>${r.clue}/5</td><td>${r.score}</td>`
+      : `<td class="rank">${i+1}</td><td>${r.name}</td><td>${r.score}</td>`;
+    tb.appendChild(tr);
+  });
+}
+
+function renderRoom(){
+  if(!STATE.room) return;
+
+  const clueIdx = STATE.room.clueIdx || 0;
+  const clue = CLUES[clueIdx];
+
+  $('hdrTeam').textContent = STATE.player || '—';
+  $('hdrClue').textContent = `${clueIdx+1}/5`;
+  $('hdrScore').textContent = STATE.room.scoreBoard?.[STATE.player] ?? 0;
+  $('timer').textContent = fmtTime(STATE.room.timeLeft);
+  $('timer').classList.toggle('warning', STATE.room.timeLeft <= 120 && STATE.room.timeLeft > 45);
+  $('timer').classList.toggle('danger', STATE.room.timeLeft <= 45);
+
+  $('clueLabel').textContent = `CLUE ${String(clueIdx+1).padStart(2,'0')} OF 05`;
+  $('riddleText').textContent = clue?.riddle || '—';
+  $('roomNow').textContent = `ROOM: ${STATE.roomKey}`;
+  $('roomLabel').textContent = "THE CAPTAIN'S STUDY";
+
+  renderProgress();
+  renderAlerts();
+  renderLifelines();
+  renderHotspots();
+
+  if(STATE.room.ended) endGameView();
+}
+
+function joinRoom(){
+  const name = $('teamName').value.trim().toUpperCase();
+  if(!name){
+    toast('PLAYER NAME REQUIRED','warn');
+    return;
+  }
+
+  STATE.player = name;
+  socket.emit('join-room', { playerName:name });
+}
+
+$('startBtn').onclick = joinRoom;
+$('teamName').addEventListener('keydown', e => {
+  if(e.key==='Enter') joinRoom();
+});
+
+function startBriefing(){
+  showScreen('scrBrief');
+  const target=$('briefText');
+  const btn=$('briefBtn');
+  btn.style.display='none';
+  target.innerHTML='';
+  let li=0,ci=0;
+
+  function type(){
+    if(li>=BRIEF_LINES.length){
+      btn.style.display='inline-block';
+      return;
+    }
+
+    const line=BRIEF_LINES[li];
+
+    if(ci<line.length){
+      if(ci===0){
+        const d=document.createElement('div');
+        d.className='prompt';
+        d.dataset.i=li;
+        target.appendChild(d);
+      }
+      target.querySelector(`[data-i="${li}"]`).textContent=line.slice(2,ci+1);
+      ci++;
+      sfx('type');
+      setTimeout(type,18);
+    } else {
+      li++;
+      ci=0;
+      setTimeout(type,180);
+    }
+  }
+
+  type();
+}
+
+$('briefBtn').onclick = () => {
+  socket.emit('start-game');
+};
+
+function handleObjectClick(el,id){
+  if(!STATE.room || STATE.room.status!=='active' || STATE.room.ended) return;
+  if(STATE.room.activeChallenge) return;
+
+  const clueIdx = STATE.room.clueIdx || 0;
+  const correctTarget = TARGET_ORDER[clueIdx];
+
+  if(id === correctTarget){
+    el.classList.add('correct');
+    socket.emit('correct-object', { hotspotId:id });
+  } else {
+    el.classList.add('wrong');
+    setTimeout(()=>{el.classList.remove('wrong')},500);
+    socket.emit('wrong-click', { hotspotId:id });
+  }
+}
+
+function openChallenge(){
+  const clue = CLUES[STATE.room.clueIdx];
+  const ch = clue.challenge;
+  STATE.activeChallenge = ch;
+  STATE.challengeLocked = false;
+
+  const card = $('challengeCard');
+  let html = `<div class="classified">ENCRYPTED CHALLENGE</div>`;
+  html += `<h3 style="margin-top:10px">▸ ${clue.title}</h3>`;
+  html += `<div class="q-text">${ch.q}</div>`;
+  html += `<div class="choices" id="choices"></div>`;
+
+  card.innerHTML = html;
+  $('challengeModal').classList.add('on');
+
+  const w=$('choices');
+  ch.choices.forEach((t,i)=>{
+    const b=document.createElement('button');
+    b.className='choice';
+    b.textContent=`${String.fromCharCode(65+i)}. ${t}`;
+    b.onclick=()=>submitChallenge(i, b);
+    w.appendChild(b);
+  });
+}
+
+function submitChallenge(answerIndex, btn){
+  if(STATE.challengeLocked) return;
+  STATE.challengeLocked = true;
+  if(btn) btn.disabled = true;
+  socket.emit('submit-challenge', { answerIndex });
+}
+
+function endGameView(){
+  showScreen('scrEnd');
+  $('endVerdict').textContent = STATE.room.endReason || 'MISSION COMPLETE';
+  $('endTitle').innerHTML = STATE.room.winner ? 'MOLE IDENTIFIED' : 'MOLE ESCAPED';
+  $('endSub').textContent = STATE.room.winner ? 'ACCESS TO G.R.E.A.T. AI NETWORK GRANTED' : 'DEBRIEF REQUIRED';
+  $('fsScore').textContent = STATE.room.scoreBoard?.[STATE.player] ?? 0;
+  $('fsTime').textContent = fmtTime(GAME_SECONDS - (STATE.room.timeLeft || 0));
+
+  const rows = [...(window._lastLeaderboard || [])];
+  const idx = rows.findIndex(r=>r.name===STATE.player);
+  const rank = idx >= 0 ? idx + 1 : 1;
+  $('fsRank').textContent = '#'+rank;
+
+  const score = STATE.room.scoreBoard?.[STATE.player] ?? 0;
+  const r = RANKS.find(r => score >= r.min);
+  $('badgeRank').innerHTML = r.name;
+
+  if (STATE.room.winner) sfx('win');
+}
+
+socket.on('join-success', ({ playerName, roomKey, status }) => {
+  STATE.player = playerName;
+  STATE.roomKey = roomKey;
+  $('hdrTeam').textContent = playerName;
+  toast(`JOINED SHARED ROOM ${roomKey}`,'ok');
+
+  if (status === 'waiting') startBriefing();
+  else showScreen('scrGame');
+});
+
+socket.on('room-error', (msg) => {
+  toast(msg,'warn');
+});
+
+socket.on('game-started', () => {
+  showScreen('scrGame');
+  toast('MISSION STARTED','ok');
+});
+
+socket.on('room-state', (room) => {
+  STATE.room = room;
+  if($('scrGame').classList.contains('active')) renderRoom();
+  if(room.ended) renderRoom();
+});
+
+socket.on('leaderboard-update', (rows) => {
+  window._lastLeaderboard = rows;
+  renderLeaderboardRows(rows, 'lbTable', false);
+  renderLeaderboardRows(rows, 'endLb', false);
+  renderLeaderboardRows(rows, 'adminLb', true);
+});
+
+socket.on('wrong-click-result', ({ playerName, alerts }) => {
+  if(playerName === STATE.player) overlay('deniedOverlay');
+  toast(`WRONG CLICK BY ${playerName} · ALERTS: ${alerts}`,'warn');
+  sfx('denied');
+});
+
+socket.on('open-challenge', () => {
+  openChallenge();
+});
+
+socket.on('challenge-result', ({ ok, playerName }) => {
+  if(ok){
+    overlay('grantedOverlay');
+    sfx('granted');
+    toast(`CHALLENGE CLEARED BY ${playerName}`,'ok');
+    setTimeout(()=>{
+      $('challengeModal').classList.remove('on');
+      STATE.activeChallenge = null;
+      STATE.challengeLocked = false;
+    },1000);
+  } else {
+    overlay('deniedOverlay');
+    sfx('denied');
+    toast(`WRONG ANSWER BY ${playerName}`,'warn');
+    STATE.challengeLocked = false;
+    document.querySelectorAll('#challengeCard .choice').forEach(b=>{
+      b.disabled = false;
+      b.classList.remove('wrong');
+    });
+  }
+});
+
+socket.on('lifeline-used', ({ type, playerName }) => {
+  toast(`${type.toUpperCase()} USED BY ${playerName}`,'ok');
+});
+
+document.querySelectorAll('.lifeline').forEach(el=>{
+  el.onclick = () => {
+    const type = el.dataset.ll;
+    if(el.classList.contains('used')) return;
+    socket.emit('use-lifeline', { type });
+  };
+});
+
+$('playAgain').onclick = () => showScreen('scrLogin');
+
+$('shareBtn').onclick = () => {
+  const score = STATE.room?.scoreBoard?.[STATE.player] ?? 0;
+  const rank = $('fsRank').textContent;
+  const t = `🎯 THE AI MOLE: ESCAPE PROTOCOL — Score ${score} · Rank ${rank}`;
+  if(navigator.share) navigator.share({ title:'AI Mole', text:t });
+  else {
+    navigator.clipboard?.writeText(t);
+    toast('COPIED','ok');
+  }
+};
+
+$('soundBtn').onclick = () => {
+  STATE.soundOn = !STATE.soundOn;
+  $('soundBtn').textContent = STATE.soundOn ? '🔊 SOUND: ON' : '🔇 SOUND: OFF';
+};
+
+$('fsBtn').onclick = () => {
+  if(!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+  else document.exitFullscreen?.();
+};
+
+$('adminBtn').onclick = () => showScreen('scrAdmin');
+$('adminClose').onclick = () => showScreen(STATE.room?.ended ? 'scrEnd' : STATE.room?.status === 'active' ? 'scrGame' : 'scrLogin');
+$('aStart').onclick = () => socket.emit('start-game');
+$('aReset').onclick = () => socket.emit('admin-reset');
+$('aUnlock').onclick = () => socket.emit('admin-unlock');
+$('aExport').onclick = () => {
+  const rows = [['RANK','PLAYER','CLUE','PTS']];
+  (window._lastLeaderboard || []).forEach((r,i)=>rows.push([i+1,r.name,r.clue,r.score]));
+  const csv = rows.map(r=>r.join(',')).join('\n');
+  const b = new Blob([csv], { type:'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(b);
+  a.download = 'ai_mole_scores.csv';
+  a.click();
+};
+</script>
+</body>
+</html>

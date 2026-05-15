@@ -14,27 +14,15 @@ app.get("*", (req, res) => {
 });
 
 const GAME_SECONDS = 480;
+const DEFAULT_ROOM = "SUMMIT";
 
 const CLUES = [
-  { target: "map", challenge: { type: "mcq", answer: 1 } },
-  { target: "frame", challenge: { type: "image", answer: 1 } },
-  { target: "fire", challenge: { type: "cipher", answer: "PROMPT" } },
-  {
-    target: "coins",
-    challenge: {
-      type: "match",
-      answer: [
-        ["RAG", "Grounded Q&A on internal docs"],
-        ["Forecasting AI", "Treasury cash projections"],
-        ["Computer Vision", "Invoice OCR & fraud"],
-        ["Agent workflows", "Multi-step automation"]
-      ]
-    }
-  },
-  { target: "wheel", challenge: { type: "mcq", answer: 1 } }
+  { target: "map", answer: 1 },
+  { target: "frame", answer: 1 },
+  { target: "fire", answer: 1 },
+  { target: "ship", answer: 3 },
+  { target: "books", answer: 1 }
 ];
-
-const PREMADE_ROOMS = ["LOBBY7", "TEAM1", "TEAM2", "TEAM3"];
 
 function createRoom(roomKey) {
   return {
@@ -55,7 +43,7 @@ function createRoom(roomKey) {
 }
 
 const rooms = new Map();
-PREMADE_ROOMS.forEach((key) => rooms.set(key, createRoom(key)));
+rooms.set(DEFAULT_ROOM, createRoom(DEFAULT_ROOM));
 
 function leaderboardRows(room) {
   return room.playerOrder
@@ -90,6 +78,7 @@ function startRoom(room) {
   room.ended = false;
   room.endReason = "";
   room.winner = false;
+
   room.playerOrder.forEach((name) => {
     room.scoreBoard[name] = 0;
   });
@@ -104,91 +93,64 @@ function endRoom(room, winner, reason) {
   room.activeChallenge = false;
 }
 
-function validateChallenge(clueIdx, payload) {
-  const challenge = CLUES[clueIdx].challenge;
-
-  if (challenge.type === "mcq" || challenge.type === "image") {
-    return Number(payload.answerIndex) === challenge.answer;
-  }
-
-  if (challenge.type === "cipher") {
-    return String(payload.answerText || "").trim().toUpperCase() === challenge.answer;
-  }
-
-  if (challenge.type === "match") {
-    const expected = challenge.answer
-      .map((pair) => pair.join("=>"))
-      .sort()
-      .join("|");
-
-    const actual = Array.isArray(payload.matchPairs)
-      ? payload.matchPairs.map((pair) => pair.join("=>")).sort().join("|")
-      : "";
-
-    return actual === expected;
-  }
-
-  return false;
-}
-
 setInterval(() => {
-  for (const room of rooms.values()) {
-    if (room.status === "active" && !room.ended) {
-      room.timeLeft -= 1;
-      if (room.timeLeft <= 0) {
-        room.timeLeft = 0;
-        endRoom(room, false, "TIME EXPIRED");
-      }
-      emitState(room.roomKey);
+  const room = rooms.get(DEFAULT_ROOM);
+  if (!room) return;
+
+  if (room.status === "active" && !room.ended) {
+    room.timeLeft -= 1;
+
+    if (room.timeLeft <= 0) {
+      room.timeLeft = 0;
+      endRoom(room, false, "TIME EXPIRED");
     }
+
+    emitState(DEFAULT_ROOM);
   }
 }, 1000);
 
 io.on("connection", (socket) => {
-  socket.on("join-room", ({ playerName, roomKey }) => {
+  socket.on("join-room", ({ playerName }) => {
     const cleanName = String(playerName || "").trim().toUpperCase();
-    const cleanRoom = String(roomKey || "").trim().toUpperCase();
+    const room = rooms.get(DEFAULT_ROOM);
 
-    if (!cleanName || !cleanRoom) {
-      socket.emit("room-error", "Enter player name and room key.");
+    if (!cleanName) {
+      socket.emit("room-error", "Enter player name.");
       return;
     }
 
-    const room = rooms.get(cleanRoom);
-    if (!room) {
-      socket.emit("room-error", `Room ${cleanRoom} does not exist.`);
-      return;
-    }
-
-    socket.join(cleanRoom);
+    socket.join(DEFAULT_ROOM);
     socket.data.playerName = cleanName;
-    socket.data.roomKey = cleanRoom;
+    socket.data.roomKey = DEFAULT_ROOM;
 
     if (!room.playerOrder.includes(cleanName)) room.playerOrder.push(cleanName);
     if (room.scoreBoard[cleanName] == null) room.scoreBoard[cleanName] = 0;
 
-    socket.emit("join-success", { playerName: cleanName, roomKey: cleanRoom });
-    emitState(cleanRoom);
+    socket.emit("join-success", {
+      playerName: cleanName,
+      roomKey: DEFAULT_ROOM,
+      status: room.status
+    });
+
+    emitState(DEFAULT_ROOM);
   });
 
   socket.on("start-game", () => {
-    const roomKey = socket.data.roomKey;
-    if (!roomKey) return;
-    const room = rooms.get(roomKey);
+    const room = rooms.get(DEFAULT_ROOM);
     if (!room) return;
 
-    startRoom(room);
-    io.to(roomKey).emit("game-started");
-    emitState(roomKey);
+    if (room.status === "waiting") {
+      startRoom(room);
+    }
+
+    io.to(DEFAULT_ROOM).emit("game-started");
+    emitState(DEFAULT_ROOM);
   });
 
   socket.on("wrong-click", ({ hotspotId }) => {
-    const roomKey = socket.data.roomKey;
     const playerName = socket.data.playerName;
-    if (!roomKey || !playerName) return;
-
-    const room = rooms.get(roomKey);
-    if (!room || room.ended || room.status !== "active") return;
+    const room = rooms.get(DEFAULT_ROOM);
+    if (!playerName || !room || room.ended || room.status !== "active") return;
 
     const currentTarget = CLUES[room.clueIdx]?.target;
     if (!currentTarget) return;
@@ -199,7 +161,7 @@ io.on("connection", (socket) => {
     room.alerts -= 1;
     addScore(room, playerName, -25);
 
-    io.to(roomKey).emit("wrong-click-result", {
+    io.to(DEFAULT_ROOM).emit("wrong-click-result", {
       hotspotId,
       playerName,
       alerts: room.alerts
@@ -210,14 +172,11 @@ io.on("connection", (socket) => {
       endRoom(room, false, "COVER BLOWN");
     }
 
-    emitState(roomKey);
+    emitState(DEFAULT_ROOM);
   });
 
   socket.on("correct-object", ({ hotspotId }) => {
-    const roomKey = socket.data.roomKey;
-    if (!roomKey) return;
-
-    const room = rooms.get(roomKey);
+    const room = rooms.get(DEFAULT_ROOM);
     if (!room || room.ended || room.status !== "active") return;
 
     const currentTarget = CLUES[room.clueIdx]?.target;
@@ -225,24 +184,22 @@ io.on("connection", (socket) => {
     if (room.activeChallenge) return;
 
     room.activeChallenge = true;
-    io.to(roomKey).emit("open-challenge", { clueIdx: room.clueIdx });
-    emitState(roomKey);
+    io.to(DEFAULT_ROOM).emit("open-challenge", { clueIdx: room.clueIdx });
+    emitState(DEFAULT_ROOM);
   });
 
-  socket.on("submit-challenge", (payload) => {
-    const roomKey = socket.data.roomKey;
+  socket.on("submit-challenge", ({ answerIndex }) => {
     const playerName = socket.data.playerName;
-    if (!roomKey || !playerName) return;
+    const room = rooms.get(DEFAULT_ROOM);
+    if (!playerName || !room || room.ended || !room.activeChallenge) return;
 
-    const room = rooms.get(roomKey);
-    if (!room || room.ended || !room.activeChallenge) return;
-
-    const ok = validateChallenge(room.clueIdx, payload);
+    const correctAnswer = CLUES[room.clueIdx]?.answer;
+    const ok = Number(answerIndex) === correctAnswer;
 
     if (!ok) {
       addScore(room, playerName, -20);
-      io.to(roomKey).emit("challenge-result", { ok: false, playerName });
-      emitState(roomKey);
+      io.to(DEFAULT_ROOM).emit("challenge-result", { ok: false, playerName });
+      emitState(DEFAULT_ROOM);
       return;
     }
 
@@ -253,23 +210,20 @@ io.on("connection", (socket) => {
     if (room.clueIdx >= CLUES.length - 1) {
       addScore(room, playerName, room.timeLeft);
       endRoom(room, true, "MOLE IDENTIFIED");
-      io.to(roomKey).emit("challenge-result", { ok: true, playerName });
-      emitState(roomKey);
+      io.to(DEFAULT_ROOM).emit("challenge-result", { ok: true, playerName });
+      emitState(DEFAULT_ROOM);
       return;
     }
 
     room.clueIdx += 1;
-    io.to(roomKey).emit("challenge-result", { ok: true, playerName });
-    emitState(roomKey);
+    io.to(DEFAULT_ROOM).emit("challenge-result", { ok: true, playerName });
+    emitState(DEFAULT_ROOM);
   });
 
   socket.on("use-lifeline", ({ type }) => {
-    const roomKey = socket.data.roomKey;
     const playerName = socket.data.playerName;
-    if (!roomKey || !playerName) return;
-
-    const room = rooms.get(roomKey);
-    if (!room || room.ended || room.status !== "active") return;
+    const room = rooms.get(DEFAULT_ROOM);
+    if (!playerName || !room || room.ended || room.status !== "active") return;
     if (!room.lifelines[type]) return;
 
     room.lifelines[type] = false;
@@ -278,6 +232,7 @@ io.on("connection", (socket) => {
     if (type === "skip") {
       room.activeChallenge = false;
       room.wrongThisClue = [];
+
       if (room.clueIdx >= CLUES.length - 1) {
         endRoom(room, true, "MOLE IDENTIFIED");
       } else {
@@ -285,17 +240,16 @@ io.on("connection", (socket) => {
       }
     }
 
-    if (type === "time") room.timeLeft += 60;
+    if (type === "time") {
+      room.timeLeft += 60;
+    }
 
-    io.to(roomKey).emit("lifeline-used", { type, playerName });
-    emitState(roomKey);
+    io.to(DEFAULT_ROOM).emit("lifeline-used", { type, playerName });
+    emitState(DEFAULT_ROOM);
   });
 
   socket.on("admin-unlock", () => {
-    const roomKey = socket.data.roomKey;
-    if (!roomKey) return;
-
-    const room = rooms.get(roomKey);
+    const room = rooms.get(DEFAULT_ROOM);
     if (!room || room.ended) return;
 
     room.activeChallenge = false;
@@ -307,24 +261,21 @@ io.on("connection", (socket) => {
       room.clueIdx += 1;
     }
 
-    emitState(roomKey);
+    emitState(DEFAULT_ROOM);
   });
 
   socket.on("admin-reset", () => {
-    const roomKey = socket.data.roomKey;
-    if (!roomKey) return;
-
-    const current = rooms.get(roomKey);
+    const current = rooms.get(DEFAULT_ROOM);
     if (!current) return;
 
-    const next = createRoom(roomKey);
+    const next = createRoom(DEFAULT_ROOM);
     next.playerOrder = [...current.playerOrder];
     current.playerOrder.forEach((name) => {
       next.scoreBoard[name] = 0;
     });
 
-    rooms.set(roomKey, next);
-    emitState(roomKey);
+    rooms.set(DEFAULT_ROOM, next);
+    emitState(DEFAULT_ROOM);
   });
 });
 
