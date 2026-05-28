@@ -1,13 +1,9 @@
 {
-  "name": "payroll-quiz-render-app",
+  "name": "payroll-quiz-vercel-supabase",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "scripts": {
-    "start": "node server.js"
-  },
   "dependencies": {
-    "express": "^4.21.2",
-    "pg": "^8.13.1"
+    "@supabase/supabase-js": "^2.49.8"
   }
 }
